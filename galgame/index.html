@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>星见告白：与她的专属羁绊</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main dark:text-white">
+  <!-- App Container -->
+  <div id="app" class="w-full min-h-screen">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-background-light">
+      <div class="text-center">
+        <div class="text-primary text-6xl mb-4">
+          <span class="material-symbols-outlined" style="font-size: 64px;">favorite</span>
+        </div>
+        <p class="text-lg font-bold text-primary loading">正在加载</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PixiJS Effects Canvas (will be added dynamically) -->
+  <div id="effects-container"></div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

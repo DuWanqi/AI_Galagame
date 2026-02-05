@@ -1,0 +1,18 @@
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  base: './',
+  server: {
+    port: 5180,
+    strictPort: true,
+    host: true,
+  },
+  publicDir: 'public',
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+  },
+  css: {
+    postcss: './postcss.config.js',
+  },
+});
