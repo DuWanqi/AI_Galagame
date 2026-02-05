@@ -535,6 +535,7 @@ export function renderGameScene(container: HTMLElement, gameManager: GameManager
   // Render current node
   const renderNode = () => {
     const node = storyEngine.getCurrentNode();
+    
     if (!node) {
       gameManager.showScene('character_select');
       return;
@@ -555,6 +556,20 @@ export function renderGameScene(container: HTMLElement, gameManager: GameManager
     } else if (node.type === 'free_chat' && node.freeChatConfig) {
       // Enter free chat mode
       enterFreeChatMode(node.freeChatConfig, (node.characterId || characterId) as CharacterId);
+    } else if (node.type === 'scene_change' && node.sceneId) {
+      // Handle scene/chapter change
+      if (node.sceneId === 'home') {
+        gameManager.showScene('home');
+        return;
+      } else {
+        // Load new chapter
+        gameManager.loadChapter(node.sceneId);
+        return;
+      }
+    } else if (node.type === 'ending') {
+      // Handle ending - show ending screen then return to menu
+      gameManager.showScene('home');
+      return;
     }
 
     // Update background if specified

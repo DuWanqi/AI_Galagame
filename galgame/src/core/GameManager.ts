@@ -137,6 +137,8 @@ export class GameManager {
       playerName,
       settings: this.state.settings, // 保留设置
     };
+    this.storyEngine.resetDialogIndex();
+    this.saveSystem.clearAutoSave();
     this.showScene('character_select');
   }
 
@@ -148,6 +150,7 @@ export class GameManager {
     if (chapter) {
       this.state.currentChapterId = chapter.id;
       this.state.currentNodeId = chapter.startNodeId;
+      this.storyEngine.resetDialogIndex();
       this.showScene('game');
     }
   }
@@ -175,6 +178,23 @@ export class GameManager {
     this.state.flags = save.flags;
     this.showScene('game');
     this.emit({ type: 'load_complete', data: save });
+  }
+
+  /**
+   * 加载指定章节
+   */
+  public loadChapter(chapterId: string): void {
+    const chapter = this.storyEngine.getChapter(chapterId);
+    if (chapter) {
+      this.state.currentChapterId = chapter.id;
+      this.state.currentNodeId = chapter.startNodeId;
+      this.storyEngine.resetDialogIndex();
+      this.showScene('game');
+      this.emit({ type: 'chapter_loaded', data: { chapterId } });
+    } else {
+      console.error(`[GameManager] 章节 ${chapterId} 不存在`);
+      this.showScene('character_select');
+    }
   }
 
   // Getters

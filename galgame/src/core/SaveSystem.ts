@@ -112,6 +112,19 @@ export class SaveSystem {
   }
 
   /**
+   * 清除自动存档
+   */
+  public clearAutoSave(): boolean {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.AUTO_SAVE);
+      return true;
+    } catch (error) {
+      console.error('[SaveSystem] 清除自动存档失败:', error);
+      return false;
+    }
+  }
+
+  /**
    * 获取所有存档
    */
   public getAllSaves(): SaveSlot[] {
