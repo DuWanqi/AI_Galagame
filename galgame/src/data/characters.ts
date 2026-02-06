@@ -67,30 +67,31 @@ export function getCharacterColor(id: CharacterId): string {
 }
 
 /**
- * 角色立绘占位图
- * 实际项目中应该替换为真实立绘URL
+ * 角色立绘路径
+ * 立绘文件放在 public/sprites/{角色ID}/{好感度等级}.png
+ * 好感度等级: stranger, familiar, fond, love, devoted
  */
 export const CHARACTER_SPRITES: Record<CharacterId, Record<string, string>> = {
   su_wanqing: {
-    stranger: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB3KFto_2hhshbDgXzz3pzQXLMOOO9Z2aXcphvF-m7c5dMWRTsoOhxDxe5HP0kKOYwx4kPvhYRwZWUw6wFnibmBgq3yYK7WPVbjIDTRx8N70uCTv3KR1xbrj4ipgqNr5NXnA5HmH8egUqpO2v9-3cMc_JXlziy24vasm5a4RPPpAG6pfnk2-MS7LL8uxfq8uFISMVWTjPvh0SAFk3nrZZJsEBMbRlm629YUza4iOab7MTFRwDzJ4Xevibvc-9QzHHL5r3qEnnWGiAI',
-    familiar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB3KFto_2hhshbDgXzz3pzQXLMOOO9Z2aXcphvF-m7c5dMWRTsoOhxDxe5HP0kKOYwx4kPvhYRwZWUw6wFnibmBgq3yYK7WPVbjIDTRx8N70uCTv3KR1xbrj4ipgqNr5NXnA5HmH8egUqpO2v9-3cMc_JXlziy24vasm5a4RPPpAG6pfnk2-MS7LL8uxfq8uFISMVWTjPvh0SAFk3nrZZJsEBMbRlm629YUza4iOab7MTFRwDzJ4Xevibvc-9QzHHL5r3qEnnWGiAI',
-    fond: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB3KFto_2hhshbDgXzz3pzQXLMOOO9Z2aXcphvF-m7c5dMWRTsoOhxDxe5HP0kKOYwx4kPvhYRwZWUw6wFnibmBgq3yYK7WPVbjIDTRx8N70uCTv3KR1xbrj4ipgqNr5NXnA5HmH8egUqpO2v9-3cMc_JXlziy24vasm5a4RPPpAG6pfnk2-MS7LL8uxfq8uFISMVWTjPvh0SAFk3nrZZJsEBMbRlm629YUza4iOab7MTFRwDzJ4Xevibvc-9QzHHL5r3qEnnWGiAI',
-    love: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB3KFto_2hhshbDgXzz3pzQXLMOOO9Z2aXcphvF-m7c5dMWRTsoOhxDxe5HP0kKOYwx4kPvhYRwZWUw6wFnibmBgq3yYK7WPVbjIDTRx8N70uCTv3KR1xbrj4ipgqNr5NXnA5HmH8egUqpO2v9-3cMc_JXlziy24vasm5a4RPPpAG6pfnk2-MS7LL8uxfq8uFISMVWTjPvh0SAFk3nrZZJsEBMbRlm629YUza4iOab7MTFRwDzJ4Xevibvc-9QzHHL5r3qEnnWGiAI',
-    devoted: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB3KFto_2hhshbDgXzz3pzQXLMOOO9Z2aXcphvF-m7c5dMWRTsoOhxDxe5HP0kKOYwx4kPvhYRwZWUw6wFnibmBgq3yYK7WPVbjIDTRx8N70uCTv3KR1xbrj4ipgqNr5NXnA5HmH8egUqpO2v9-3cMc_JXlziy24vasm5a4RPPpAG6pfnk2-MS7LL8uxfq8uFISMVWTjPvh0SAFk3nrZZJsEBMbRlm629YUza4iOab7MTFRwDzJ4Xevibvc-9QzHHL5r3qEnnWGiAI',
+    stranger: '/sprites/su_wanqing/stranger.png',
+    familiar: '/sprites/su_wanqing/familiar.png',
+    fond: '/sprites/su_wanqing/fond.png',
+    love: '/sprites/su_wanqing/love.png',
+    devoted: '/sprites/su_wanqing/devoted.png',
   },
   xia_zhi: {
-    stranger: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAx6ras9sJOtkZqkCqhxTTHoihkpMVnmGCUbE6MFcnDIbDiSLPJ5v-7L878yZ5itoLSmiy-aImzAOOOPTnOqvANA_PUZ_E5M0dB3BPYMjEjyDdAwuQwbOmyb829EWFUv1eauYSwghCJq_93ZCuwavMMBlSkMKqkUlvw1rOYw88YavAeSssOVoAdtASfvVo11g9v8Np82FgDMpcXEyrorJdp498Lth7SU6--UhQ3Wr-_34-CM-wxXuiS_cOQBIpCNZqqJMgjCRw-Qeg',
-    familiar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAx6ras9sJOtkZqkCqhxTTHoihkpMVnmGCUbE6MFcnDIbDiSLPJ5v-7L878yZ5itoLSmiy-aImzAOOOPTnOqvANA_PUZ_E5M0dB3BPYMjEjyDdAwuQwbOmyb829EWFUv1eauYSwghCJq_93ZCuwavMMBlSkMKqkUlvw1rOYw88YavAeSssOVoAdtASfvVo11g9v8Np82FgDMpcXEyrorJdp498Lth7SU6--UhQ3Wr-_34-CM-wxXuiS_cOQBIpCNZqqJMgjCRw-Qeg',
-    fond: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAx6ras9sJOtkZqkCqhxTTHoihkpMVnmGCUbE6MFcnDIbDiSLPJ5v-7L878yZ5itoLSmiy-aImzAOOOPTnOqvANA_PUZ_E5M0dB3BPYMjEjyDdAwuQwbOmyb829EWFUv1eauYSwghCJq_93ZCuwavMMBlSkMKqkUlvw1rOYw88YavAeSssOVoAdtASfvVo11g9v8Np82FgDMpcXEyrorJdp498Lth7SU6--UhQ3Wr-_34-CM-wxXuiS_cOQBIpCNZqqJMgjCRw-Qeg',
-    love: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAx6ras9sJOtkZqkCqhxTTHoihkpMVnmGCUbE6MFcnDIbDiSLPJ5v-7L878yZ5itoLSmiy-aImzAOOOPTnOqvANA_PUZ_E5M0dB3BPYMjEjyDdAwuQwbOmyb829EWFUv1eauYSwghCJq_93ZCuwavMMBlSkMKqkUlvw1rOYw88YavAeSssOVoAdtASfvVo11g9v8Np82FgDMpcXEyrorJdp498Lth7SU6--UhQ3Wr-_34-CM-wxXuiS_cOQBIpCNZqqJMgjCRw-Qeg',
-    devoted: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAx6ras9sJOtkZqkCqhxTTHoihkpMVnmGCUbE6MFcnDIbDiSLPJ5v-7L878yZ5itoLSmiy-aImzAOOOPTnOqvANA_PUZ_E5M0dB3BPYMjEjyDdAwuQwbOmyb829EWFUv1eauYSwghCJq_93ZCuwavMMBlSkMKqkUlvw1rOYw88YavAeSssOVoAdtASfvVo11g9v8Np82FgDMpcXEyrorJdp498Lth7SU6--UhQ3Wr-_34-CM-wxXuiS_cOQBIpCNZqqJMgjCRw-Qeg',
+    stranger: '/sprites/xia_zhi/stranger.png',
+    familiar: '/sprites/xia_zhi/familiar.png',
+    fond: '/sprites/xia_zhi/fond.png',
+    love: '/sprites/xia_zhi/love.png',
+    devoted: '/sprites/xia_zhi/devoted.png',
   },
   lin_zhiyu: {
-    stranger: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD1lGM3x7hMmP2mchz1CqpFkJsZBXANzKciU67EmAiTc3bCazaS9bFdwdFzK1CcdNCDrq3Q-l-su23sSvWMs8W77S2XfrHZegbcRIkQxaxC_b0GKPw1u9fy29CDqILV-qV3eaxlYNZKAjNEReY-MaLzK5lNiw76XGFZcn_wAUy1sUaqDOTuwZJAETAAvsx_rX44p8x_VaQ1MLEYmzgSoJATpjEBtmmON7Oh8VsaBxB9i-_kYsdeob-E3JshoO-SK66K9ZOrl9nMIzE',
-    familiar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD1lGM3x7hMmP2mchz1CqpFkJsZBXANzKciU67EmAiTc3bCazaS9bFdwdFzK1CcdNCDrq3Q-l-su23sSvWMs8W77S2XfrHZegbcRIkQxaxC_b0GKPw1u9fy29CDqILV-qV3eaxlYNZKAjNEReY-MaLzK5lNiw76XGFZcn_wAUy1sUaqDOTuwZJAETAAvsx_rX44p8x_VaQ1MLEYmzgSoJATpjEBtmmON7Oh8VsaBxB9i-_kYsdeob-E3JshoO-SK66K9ZOrl9nMIzE',
-    fond: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD1lGM3x7hMmP2mchz1CqpFkJsZBXANzKciU67EmAiTc3bCazaS9bFdwdFzK1CcdNCDrq3Q-l-su23sSvWMs8W77S2XfrHZegbcRIkQxaxC_b0GKPw1u9fy29CDqILV-qV3eaxlYNZKAjNEReY-MaLzK5lNiw76XGFZcn_wAUy1sUaqDOTuwZJAETAAvsx_rX44p8x_VaQ1MLEYmzgSoJATpjEBtmmON7Oh8VsaBxB9i-_kYsdeob-E3JshoO-SK66K9ZOrl9nMIzE',
-    love: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD1lGM3x7hMmP2mchz1CqpFkJsZBXANzKciU67EmAiTc3bCazaS9bFdwdFzK1CcdNCDrq3Q-l-su23sSvWMs8W77S2XfrHZegbcRIkQxaxC_b0GKPw1u9fy29CDqILV-qV3eaxlYNZKAjNEReY-MaLzK5lNiw76XGFZcn_wAUy1sUaqDOTuwZJAETAAvsx_rX44p8x_VaQ1MLEYmzgSoJATpjEBtmmON7Oh8VsaBxB9i-_kYsdeob-E3JshoO-SK66K9ZOrl9nMIzE',
-    devoted: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD1lGM3x7hMmP2mchz1CqpFkJsZBXANzKciU67EmAiTc3bCazaS9bFdwdFzK1CcdNCDrq3Q-l-su23sSvWMs8W77S2XfrHZegbcRIkQxaxC_b0GKPw1u9fy29CDqILV-qV3eaxlYNZKAjNEReY-MaLzK5lNiw76XGFZcn_wAUy1sUaqDOTuwZJAETAAvsx_rX44p8x_VaQ1MLEYmzgSoJATpjEBtmmON7Oh8VsaBxB9i-_kYsdeob-E3JshoO-SK66K9ZOrl9nMIzE',
+    stranger: '/sprites/lin_zhiyu/stranger.png',
+    familiar: '/sprites/lin_zhiyu/familiar.png',
+    fond: '/sprites/lin_zhiyu/fond.png',
+    love: '/sprites/lin_zhiyu/love.png',
+    devoted: '/sprites/lin_zhiyu/devoted.png',
   },
 };
 

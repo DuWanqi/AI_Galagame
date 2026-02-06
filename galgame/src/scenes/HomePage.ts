@@ -33,6 +33,10 @@ export function renderHomePage(container: HTMLElement, gameManager: GameManager)
               <a class="text-sm font-medium hover:text-primary transition-colors text-gray-600 cursor-pointer" id="nav-characters">角色</a>
               <a class="text-sm font-medium hover:text-primary transition-colors text-gray-600 cursor-pointer" id="nav-gallery">图鉴</a>
               <a class="text-sm font-medium hover:text-primary transition-colors text-gray-600 cursor-pointer" id="nav-settings">设置</a>
+              <a class="text-sm font-medium hover:text-primary transition-colors text-gray-600 cursor-pointer flex items-center gap-1" id="nav-tutorial">
+                <span class="material-symbols-outlined text-[16px]">school</span>
+                教程
+              </a>
             </div>
             <div class="flex items-center gap-4">
               <button id="btn-start-game" class="hidden md:flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-6 bg-primary hover:bg-pink-600 text-white text-sm font-bold shadow-lg shadow-pink-200 transition-all hover:scale-105 active:scale-95">
@@ -221,6 +225,111 @@ export function renderHomePage(container: HTMLElement, gameManager: GameManager)
           </div>
         </div>
       </div>
+      
+      <!-- Tutorial Modal -->
+      <div id="tutorial-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="glass-card rounded-3xl p-0 max-w-lg w-full mx-4 shadow-2xl overflow-hidden animate-fade-in">
+          <!-- Header -->
+          <div class="bg-gradient-to-r from-primary to-pink-400 px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-white text-2xl">school</span>
+              <h3 class="text-xl font-bold text-white">新手教程</h3>
+            </div>
+            <button id="btn-close-tutorial" class="text-white/80 hover:text-white transition-colors">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          
+          <!-- Scrollable Content -->
+          <div class="p-6 max-h-[60vh] overflow-y-auto space-y-6 text-gray-700">
+            <!-- Welcome -->
+            <div class="text-center pb-4 border-b border-gray-100">
+              <h4 class="text-lg font-bold text-gray-900 mb-2">欢迎来到「星见告白」！</h4>
+              <p class="text-sm text-gray-500">这是一款融合了AI技术的恋爱模拟游戏</p>
+            </div>
+            
+            <!-- 苏晚晴 -->
+            <div class="flex gap-4 items-start">
+              <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-blue-500">menu_book</span>
+              </div>
+              <div>
+                <h5 class="font-bold text-gray-900 mb-1">📖 苏晚晴的故事</h5>
+                <p class="text-sm leading-relaxed">
+                  晚晴的剧情是<span class="text-primary font-bold">作者精心编写</span>的完整故事线，包含多分支和多结局。
+                  每章结尾有<span class="text-primary font-bold">AI开放式对话</span>环节，你可以和她自由聊天，增进好感度！
+                </p>
+              </div>
+            </div>
+            
+            <!-- 夏栀 -->
+            <div class="flex gap-4 items-start">
+              <div class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-pink-500">auto_awesome</span>
+              </div>
+              <div>
+                <h5 class="font-bold text-gray-900 mb-1">✨ 夏栀的故事</h5>
+                <p class="text-sm leading-relaxed">
+                  夏栀的第一章是预设剧情，但<span class="text-primary font-bold">第二章开始完全由AI实时生成</span>！
+                  对话内容、选项、甚至剧情走向都会根据你的好感度和之前的互动动态变化。每次游玩都是独一无二的体验！
+                </p>
+              </div>
+            </div>
+            
+            <!-- 降级模式 -->
+            <div class="flex gap-4 items-start">
+              <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-gray-500">settings</span>
+              </div>
+              <div>
+                <h5 class="font-bold text-gray-900 mb-1">⚙️ 无AI模式</h5>
+                <p class="text-sm leading-relaxed">
+                  没有配置API Key？没关系！游戏会自动使用<span class="font-bold">预设对话内容</span>，
+                  确保你可以完整体验所有剧情。前往<span class="text-primary font-bold">设置</span>页面开启AI增强功能。
+                </p>
+              </div>
+            </div>
+            
+            <!-- 约会模式 -->
+            <div class="flex gap-4 items-start">
+              <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-purple-500">local_cafe</span>
+              </div>
+              <div>
+                <h5 class="font-bold text-gray-900 mb-1">💜 约会模式</h5>
+                <p class="text-sm leading-relaxed">
+                  想要更多互动？点击首页的<span class="text-purple-500 font-bold">「约会」</span>按钮，
+                  可以带角色去不同的地点约会！咖啡厅、图书馆、公园……随着好感度提升，还会解锁更多约会地点哦！
+                </p>
+              </div>
+            </div>
+            
+            <!-- Tips -->
+            <div class="bg-pink-50 rounded-xl p-4 border border-pink-100">
+              <h5 class="font-bold text-primary mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">lightbulb</span>
+                小提示
+              </h5>
+              <ul class="text-sm space-y-1 text-gray-600">
+                <li>• 好感度会影响角色立绘和对话态度</li>
+                <li>• 记得经常存档，探索不同的选择</li>
+                <li>• 每位角色都有隐藏结局等你发现</li>
+              </ul>
+            </div>
+          </div>
+          
+          <!-- Footer -->
+          <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-500">
+              <input type="checkbox" id="tutorial-dont-show" class="rounded border-gray-300 text-primary focus:ring-primary">
+              <span>下次不再显示</span>
+            </label>
+            <button id="btn-start-tutorial" class="px-6 py-2 rounded-full bg-primary text-white font-bold hover:bg-pink-600 transition-colors">
+              开始游戏
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 
@@ -234,8 +343,46 @@ export function renderHomePage(container: HTMLElement, gameManager: GameManager)
   const cancelNameBtn = container.querySelector('#btn-cancel-name');
   const navCharacters = container.querySelector('#nav-characters');
   const navSettings = container.querySelector('#nav-settings');
+  const navTutorial = container.querySelector('#nav-tutorial');
   const linkSettings = container.querySelector('#link-settings');
   const linkSave = container.querySelector('#link-save');
+  
+  // Tutorial Modal Elements
+  const tutorialModal = container.querySelector('#tutorial-modal') as HTMLElement;
+  const closeTutorialBtn = container.querySelector('#btn-close-tutorial');
+  const startTutorialBtn = container.querySelector('#btn-start-tutorial');
+  const dontShowCheckbox = container.querySelector('#tutorial-dont-show') as HTMLInputElement;
+  
+  // Tutorial Modal Functions
+  const TUTORIAL_SHOWN_KEY = 'galgame_tutorial_shown';
+  
+  const showTutorial = () => {
+    tutorialModal.classList.remove('hidden');
+    tutorialModal.classList.add('flex');
+  };
+  
+  const hideTutorial = () => {
+    tutorialModal.classList.add('hidden');
+    tutorialModal.classList.remove('flex');
+    if (dontShowCheckbox?.checked) {
+      localStorage.setItem(TUTORIAL_SHOWN_KEY, 'true');
+    }
+  };
+  
+  // Check if tutorial should be shown on first load
+  const shouldShowTutorial = !localStorage.getItem(TUTORIAL_SHOWN_KEY);
+  if (shouldShowTutorial) {
+    // Delay slightly for smooth animation
+    setTimeout(() => showTutorial(), 500);
+  }
+  
+  // Tutorial event listeners
+  closeTutorialBtn?.addEventListener('click', hideTutorial);
+  startTutorialBtn?.addEventListener('click', hideTutorial);
+  navTutorial?.addEventListener('click', () => {
+    dontShowCheckbox.checked = false; // Reset checkbox when manually opening
+    showTutorial();
+  });
 
   const showNameModal = () => {
     nameModal.classList.remove('hidden');

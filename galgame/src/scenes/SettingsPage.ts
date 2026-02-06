@@ -123,6 +123,23 @@ export function renderSettingsPage(container: HTMLElement, gameManager: GameMana
               </button>
             </div>
           </div>
+          
+          <!-- Help & Tutorial -->
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary">school</span>
+                <div>
+                  <h3 class="font-bold text-gray-900">帮助与教程</h3>
+                  <p class="text-sm text-gray-500">查看游戏新手教程</p>
+                </div>
+              </div>
+              <button id="btn-view-tutorial" class="px-4 py-2 rounded-xl bg-primary/10 text-primary font-bold hover:bg-primary/20 transition-colors flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                查看教程
+              </button>
+            </div>
+          </div>
         </div>
         
         <!-- Save Button -->
@@ -212,5 +229,11 @@ export function renderSettingsPage(container: HTMLElement, gameManager: GameMana
       alert('数据已清除');
       gameManager.showScene('home');
     }
+  });
+  
+  container.querySelector('#btn-view-tutorial')?.addEventListener('click', () => {
+    // Clear the tutorial shown flag and go to home to show tutorial
+    localStorage.removeItem('galgame_tutorial_shown');
+    gameManager.showScene('home');
   });
 }
