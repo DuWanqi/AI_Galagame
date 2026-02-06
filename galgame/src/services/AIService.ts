@@ -7,7 +7,13 @@ import type {
   CharacterId, 
   AIDialogRequest, 
   AIDialogResponse,
-  DialogHistoryEntry 
+  AIStoryRequest,
+  AIStoryDialogResponse,
+  AIStoryChoiceResponse,
+  DialogHistoryEntry,
+  DialogLine,
+  Choice,
+  StoryContext
 } from '../types';
 import { getCharacter } from '../data/characters';
 
@@ -46,7 +52,11 @@ const AFFECTION_CONTEXT: Record<string, string> = {
 
 export class AIService {
   private apiKey: string | null = null;
-  private baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+  private baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  // 剧情生成使用gemini-2.5-flash模型
+  private fastModelUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  // 剧情生成超时时间(毫秒)
+  private storyGenerationTimeout = 15000;
 
   /**
    * 设置API Key
@@ -94,7 +104,7 @@ ${historyContext || '（这是你们的第一次对话）'}
 
 请以${character.name}的身份回复，回复要自然、符合角色性格，包含括号内的神态动作描写。`;
 
-      const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
+      const response = await fetch(`${this.fastModelUrl}?key=${this.apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,19 +117,37 @@ ${historyContext || '（这是你们的第一次对话）'}
           }],
           generationConfig: {
             temperature: 0.8,
-            maxOutputTokens: 200,
+            maxOutputTokens: 1024,
             topP: 0.9,
           },
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          ],
         }),
       });
 
       if (!response.ok) {
-        console.error('[AIService] API请求失败:', response.status);
+        const errorText = await response.text();
+        console.error('[AIService] API请求失败:', response.status, errorText);
         return this.getFallbackResponse(request);
       }
 
+      console.log('[AIService] 自由对话API请求成功');
+
       const data = await response.json();
+      
+      // 检查安全过滤
+      const finishReason = data.candidates?.[0]?.finishReason;
+      if (finishReason === 'PROHIBITED_CONTENT' || finishReason === 'SAFETY') {
+        console.warn('[AIService] 自由对话被安全过滤器拦截');
+        return this.getFallbackResponse(request);
+      }
+      
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      console.log('[AIService] AI自由对话返回:', text);
 
       if (!text) {
         return this.getFallbackResponse(request);
@@ -136,6 +164,453 @@ ${historyContext || '（这是你们的第一次对话）'}
     } catch (error) {
       console.error('[AIService] 生成回复失败:', error);
       return this.getFallbackResponse(request);
+    }
+  }
+
+  /**
+   * 生成AI剧情对话
+   * 根据剧情上下文和好感度动态生成符合场景的对话
+   */
+  public async generateStoryDialog(request: AIStoryRequest): Promise<AIStoryDialogResponse> {
+    if (!this.apiKey) {
+      console.log('[AIService] 未配置API Key，使用降级内容');
+      return { dialogs: [], success: false };
+    }
+
+    try {
+      const character = getCharacter(request.characterId);
+      const characterPrompt = CHARACTER_PROMPTS[request.characterId];
+      const affectionLevel = this.getAffectionLevel(request.currentAffection);
+      const affectionContext = AFFECTION_CONTEXT[affectionLevel];
+      const dialogCount = request.storyContext.dialogCount || 3;
+
+      // 构建历史对话上下文
+      const historyContext = request.recentHistory
+        .slice(-5)
+        .map(h => `${h.characterName}: ${h.text}`)
+        .join('\n');
+
+      const prompt = `${characterPrompt}
+
+当前情感状态：${affectionContext}
+当前好感度：${request.currentAffection}/100
+
+最近的对话记录：
+${historyContext || '（这是你们的第一次对话）'}
+
+【剧情场景】
+场景：${request.storyContext.scene}
+事件：${request.storyContext.event}
+氛围：${request.storyContext.mood}
+必须包含的关键点：${request.storyContext.keyPoints.join('、')}
+
+请以${character.name}的身份生成${dialogCount}句符合场景的对话。
+每句对话要包含神态动作描写（用括号标注），对话要连贯自然。
+根据好感度调整语气亲密程度。
+
+请严格按以下JSON格式返回，不要添加任何其他内容：
+[
+  {"text": "对话内容1", "emotion": "happy"},
+  {"text": "对话内容2", "emotion": "blush"},
+  {"text": "对话内容3", "emotion": "neutral"}
+]
+
+emotion可选值: neutral, happy, sad, angry, blush, surprised`;
+
+      // 带超时的请求
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.storyGenerationTimeout);
+
+      const response = await fetch(`${this.fastModelUrl}?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.85,
+            maxOutputTokens: 4096,
+            topP: 0.9,
+          },
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          ],
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[AIService] 剧情对话生成API请求失败:', response.status, errorText);
+        return { dialogs: [], success: false };
+      }
+      
+      console.log('[AIService] 剧情对话API请求成功');
+
+      const data = await response.json();
+      
+      // 检查是否被安全过滤器拦截
+      const finishReason = data.candidates?.[0]?.finishReason;
+      if (finishReason === 'PROHIBITED_CONTENT' || finishReason === 'SAFETY') {
+        console.warn('[AIService] 内容被安全过滤器拦截，使用降级内容');
+        return { dialogs: [], success: false };
+      }
+      
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      console.log('[AIService] AI返回文本:', text);
+
+      // 解析JSON响应
+      const dialogs = this.parseDialogResponse(text, request.characterId);
+      
+      if (dialogs.length === 0) {
+        console.warn('[AIService] 解析对话失败，原始文本:', text);
+        return { dialogs: [], success: false };
+      }
+
+      return { dialogs, success: true };
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        console.warn('[AIService] 剧情对话生成超时，使用降级内容');
+      } else {
+        console.error('[AIService] 剧情对话生成失败:', error);
+      }
+      return { dialogs: [], success: false };
+    }
+  }
+
+  /**
+   * 生成AI剧情选项
+   * 根据剧情上下文和好感度动态生成选项
+   */
+  public async generateStoryChoices(
+    request: AIStoryRequest,
+    nextNodePrefix: string
+  ): Promise<AIStoryChoiceResponse> {
+    if (!this.apiKey) {
+      console.log('[AIService] 未配置API Key，使用降级内容');
+      return { choices: [], success: false };
+    }
+
+    try {
+      const character = getCharacter(request.characterId);
+      const characterPrompt = CHARACTER_PROMPTS[request.characterId];
+      const affectionLevel = this.getAffectionLevel(request.currentAffection);
+      const affectionContext = AFFECTION_CONTEXT[affectionLevel];
+      const choiceCount = request.storyContext.choiceCount || 3;
+
+      const prompt = `${characterPrompt}
+
+当前情感状态：${affectionContext}
+当前好感度：${request.currentAffection}/100
+
+【剧情场景】
+场景：${request.storyContext.scene}
+事件：${request.storyContext.event}
+氛围：${request.storyContext.mood}
+必须包含的关键点：${request.storyContext.keyPoints.join('、')}
+
+请根据场景生成${choiceCount}个玩家可以选择的回应选项。
+选项应该覆盖：正面回应（增加好感）、中性回应、负面回应（可能降低好感）。
+每个选项要自然、符合学生日常对话。
+
+请严格按以下JSON格式返回，不要添加任何其他内容：
+[
+  {"text": "选项1文本", "affection": 5, "type": "positive"},
+  {"text": "选项2文本", "affection": 0, "type": "neutral"},
+  {"text": "选项3文本", "affection": -3, "type": "negative"}
+]
+
+type只能是: positive, neutral, negative
+affection范围: -10 到 10`;
+
+      // 带超时的请求
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.storyGenerationTimeout);
+
+      const response = await fetch(`${this.fastModelUrl}?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.8,
+            maxOutputTokens: 4096,
+            topP: 0.9,
+          },
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          ],
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[AIService] 剧情选项生成API请求失败:', response.status, errorText);
+        return { choices: [], success: false };
+      }
+      
+      console.log('[AIService] 剧情选项API请求成功');
+
+      const data = await response.json();
+      
+      // 检查是否被安全过滤器拦截
+      const finishReason = data.candidates?.[0]?.finishReason;
+      if (finishReason === 'PROHIBITED_CONTENT' || finishReason === 'SAFETY') {
+        console.warn('[AIService] 内容被安全过滤器拦截，使用降级内容');
+        return { choices: [], success: false };
+      }
+      
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      console.log('[AIService] AI返回选项文本:', text);
+
+      // 解析JSON响应
+      const choices = this.parseChoiceResponse(text, request.characterId, nextNodePrefix);
+      
+      if (choices.length === 0) {
+        console.warn('[AIService] 解析选项失败，原始文本:', text);
+        return { choices: [], success: false };
+      }
+
+      return { choices, success: true };
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        console.warn('[AIService] 剧情选项生成超时，使用降级内容');
+      } else {
+        console.error('[AIService] 剧情选项生成失败:', error);
+      }
+      return { choices: [], success: false };
+    }
+  }
+
+  /**
+   * 生成AI剧情选项（使用nextNodeId映射表）
+   */
+  public async generateStoryChoicesWithMap(
+    request: AIStoryRequest,
+    nextNodeMap: Record<string, string>
+  ): Promise<AIStoryChoiceResponse> {
+    if (!this.apiKey) {
+      console.log('[AIService] 未配置API Key，使用降级内容');
+      return { choices: [], success: false };
+    }
+
+    try {
+      const character = getCharacter(request.characterId);
+      const characterPrompt = CHARACTER_PROMPTS[request.characterId];
+      const affectionLevel = this.getAffectionLevel(request.currentAffection);
+      const affectionContext = AFFECTION_CONTEXT[affectionLevel];
+      const choiceCount = request.storyContext.choiceCount || 3;
+
+      const prompt = `${characterPrompt}
+
+当前情感状态：${affectionContext}
+当前好感度：${request.currentAffection}/100
+
+【剧情场景】
+场景：${request.storyContext.scene}
+事件：${request.storyContext.event}
+氛围：${request.storyContext.mood}
+必须包含的关键点：${request.storyContext.keyPoints.join('、')}
+
+请根据场景生成${choiceCount}个玩家可以选择的回应选项。
+选项应该覆盖：正面回应（增加好感）、中性回应、负面回应（可能降低好感）。
+每个选项要自然、符合学生日常对话。
+
+请严格按以下JSON格式返回，不要添加任何其他内容：
+[
+  {"text": "选项1文本", "affection": 5, "type": "positive"},
+  {"text": "选项2文本", "affection": 0, "type": "neutral"},
+  {"text": "选项3文本", "affection": -3, "type": "negative"}
+]
+
+type只能是: positive, neutral, negative
+affection范围: -10 到 10`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.storyGenerationTimeout);
+
+      const response = await fetch(`${this.fastModelUrl}?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.8,
+            maxOutputTokens: 4096,
+            topP: 0.9,
+          },
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          ],
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[AIService] 剧情选项生成API请求失败:', response.status, errorText);
+        return { choices: [], success: false };
+      }
+
+      const data = await response.json();
+      
+      const finishReason = data.candidates?.[0]?.finishReason;
+      if (finishReason === 'PROHIBITED_CONTENT' || finishReason === 'SAFETY') {
+        console.warn('[AIService] 内容被安全过滤器拦截');
+        return { choices: [], success: false };
+      }
+      
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      console.log('[AIService] AI返回选项文本:', text);
+
+      const choices = this.parseChoiceResponseWithMap(text, request.characterId, nextNodeMap);
+      
+      if (choices.length === 0) {
+        console.warn('[AIService] 解析选项失败');
+        return { choices: [], success: false };
+      }
+
+      return { choices, success: true };
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        console.warn('[AIService] 剧情选项生成超时');
+      } else {
+        console.error('[AIService] 剧情选项生成失败:', error);
+      }
+      return { choices: [], success: false };
+    }
+  }
+
+  /**
+   * 解析AI返回的选项JSON（使用nextNodeId映射表）
+   */
+  private parseChoiceResponseWithMap(
+    text: string, 
+    characterId: CharacterId, 
+    nextNodeMap: Record<string, string>
+  ): Choice[] {
+    try {
+      const jsonMatch = text.match(/\[[\s\S]*?\]/);
+      if (!jsonMatch) return [];
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(parsed)) return [];
+
+      const typeToIcon: Record<string, string> = {
+        positive: 'favorite',
+        neutral: 'sentiment_neutral',
+        negative: 'close'
+      };
+
+      return parsed.map((item: any, index: number) => {
+        const type = item.type || 'neutral';
+        // 从映射表中获取对应的nextNodeId，如果没有则使用第一个
+        const nextNodeId = nextNodeMap[type] || Object.values(nextNodeMap)[0] || 'unknown';
+        
+        return {
+          id: `ai_c${Date.now()}_${index}`,
+          text: item.text || '',
+          icon: typeToIcon[type] || 'arrow_forward',
+          effects: [{
+            type: 'affection' as const,
+            characterId,
+            value: item.affection || 0,
+          }],
+          nextNodeId,
+        };
+      }).filter((c: Choice) => c.text.length > 0);
+    } catch (e) {
+      console.error('[AIService] 解析选项JSON失败:', e);
+      return [];
+    }
+  }
+
+  /**
+   * 解析AI返回的对话JSON
+   */
+  private parseDialogResponse(text: string, characterId: CharacterId): DialogLine[] {
+    try {
+      // 尝试提取JSON部分
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) return [];
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(parsed)) return [];
+
+      return parsed.map((item: any, index: number) => ({
+        id: `ai_d${Date.now()}_${index}`,
+        characterId,
+        text: item.text || '',
+        emotion: item.emotion || 'neutral',
+      })).filter((d: DialogLine) => d.text.length > 0);
+    } catch (e) {
+      console.error('[AIService] 解析对话JSON失败:', e);
+      return [];
+    }
+  }
+
+  /**
+   * 解析AI返回的选项JSON
+   */
+  private parseChoiceResponse(
+    text: string, 
+    characterId: CharacterId, 
+    nextNodePrefix: string
+  ): Choice[] {
+    try {
+      // 尝试提取JSON部分
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) return [];
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(parsed)) return [];
+
+      const typeToSuffix: Record<string, string> = {
+        positive: 'a',
+        neutral: 'b', 
+        negative: 'c'
+      };
+
+      const typeToIcon: Record<string, string> = {
+        positive: 'favorite',
+        neutral: 'sentiment_neutral',
+        negative: 'close'
+      };
+
+      return parsed.map((item: any, index: number) => {
+        const type = item.type || 'neutral';
+        const suffix = typeToSuffix[type] || String.fromCharCode(97 + index);
+        
+        return {
+          id: `ai_c${Date.now()}_${index}`,
+          text: item.text || '',
+          icon: typeToIcon[type] || 'arrow_forward',
+          effects: [{
+            type: 'affection' as const,
+            characterId,
+            value: item.affection || 0,
+          }],
+          nextNodeId: `${nextNodePrefix}${suffix}`,
+        };
+      }).filter((c: Choice) => c.text.length > 0);
+    } catch (e) {
+      console.error('[AIService] 解析选项JSON失败:', e);
+      return [];
     }
   }
 

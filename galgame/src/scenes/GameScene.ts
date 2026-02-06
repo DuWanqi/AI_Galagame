@@ -4,10 +4,13 @@
  */
 
 import type { GameManager } from '../core/GameManager';
-import type { CharacterId, Choice, DialogLine, FreeChatConfig } from '../types';
+import type { CharacterId, Choice, DialogLine, FreeChatConfig, StoryContext, StoryNode } from '../types';
 import { getCharacter, CHARACTER_SPRITES, BACKGROUNDS, getCharacterColor } from '../data/characters';
 import { EffectsManager } from '../effects/EffectsManager';
 import { getAIService } from '../services/AIService';
+
+// AI节点状态缓存 - 存储已生成的AI内容
+const aiNodeCache = new Map<string, { dialogs?: DialogLine[]; choices?: Choice[] }>();
 
 export function renderGameScene(container: HTMLElement, gameManager: GameManager): void {
   const storyEngine = gameManager.getStoryEngine();
@@ -365,7 +368,8 @@ export function renderGameScene(container: HTMLElement, gameManager: GameManager
     const node = storyEngine.getCurrentNode();
     if (!node) return;
 
-    if (node.type === 'dialog' && node.dialogs) {
+    // 处理普通对话和AI对话节点
+    if ((node.type === 'dialog' || node.type === 'ai_dialog') && node.dialogs) {
       const nextDialog = storyEngine.advanceDialog();
       if (nextDialog) {
         renderDialog(nextDialog);
@@ -376,8 +380,17 @@ export function renderGameScene(container: HTMLElement, gameManager: GameManager
         // End of story
         gameManager.showScene('character_select');
       }
-    } else if (node.type === 'choice') {
+    } else if (node.type === 'choice' || node.type === 'ai_choice') {
       // Wait for choice
+    } else if (node.type === 'ending' && node.dialogs) {
+      // 处理结局对话
+      const nextDialog = storyEngine.advanceDialog();
+      if (nextDialog) {
+        renderDialog(nextDialog);
+      } else {
+        // 结局对话结束，返回首页
+        gameManager.showScene('home');
+      }
     }
   };
 
@@ -532,6 +545,179 @@ export function renderGameScene(container: HTMLElement, gameManager: GameManager
     }
   };
   
+  // 显示AI加载动画
+  const showAILoadingIndicator = () => {
+    dialogText.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full"></div>
+        <span class="text-gray-500">AI正在生成内容...</span>
+      </div>
+    `;
+    nextIndicator.classList.add('hidden');
+  };
+
+  // 隐藏AI加载动画
+  const hideAILoadingIndicator = () => {
+    dialogText.innerHTML = '';
+  };
+
+  // 处理AI对话节点
+  const handleAIDialogNode = async (node: StoryNode) => {
+    const nodeCharacterId = (node.characterId || characterId) as CharacterId;
+    const currentAffection = gameManager.getAffection(nodeCharacterId);
+    const settings = gameManager.getSettings();
+    
+    // 检查缓存
+    const cached = aiNodeCache.get(node.id);
+    if (cached?.dialogs && cached.dialogs.length > 0) {
+      // 确保node.dialogs已设置（缓存命中时也需要）
+      node.dialogs = cached.dialogs;
+      // 使用缓存的对话
+      const currentDialog = cached.dialogs[storyEngine.getCurrentDialogIndex()];
+      if (currentDialog) {
+        renderDialog(currentDialog);
+      }
+      return;
+    }
+
+    const aiService = getAIService();
+    const storyContext = node.storyContext!;
+    
+    // 检查是否启用AI且已配置
+    const useAI = settings.enableAI && aiService.isConfigured();
+    console.log(`[GameScene] AI对话节点 - enableAI: ${settings.enableAI}, isConfigured: ${aiService.isConfigured()}, useAI: ${useAI}`);
+    
+    let dialogsToRender: DialogLine[];
+    
+    if (useAI) {
+      // 显示加载动画
+      showAILoadingIndicator();
+
+      // 尝试AI生成
+      const result = await aiService.generateStoryDialog({
+        characterId: nodeCharacterId,
+        currentAffection,
+        storyContext,
+        recentHistory: gameManager.getDialogHistory().slice(-5),
+      });
+
+      hideAILoadingIndicator();
+      
+      if (result.success && result.dialogs.length > 0) {
+        dialogsToRender = result.dialogs;
+        console.log('[GameScene] AI对话生成成功');
+      } else {
+        // AI生成失败，使用降级内容
+        dialogsToRender = node.fallback?.dialogs || [];
+        console.log('[GameScene] AI生成失败，使用降级对话内容');
+      }
+    } else {
+      // 未启用AI或未配置，直接使用降级内容
+      dialogsToRender = node.fallback?.dialogs || [];
+      console.log('[GameScene] AI未启用，使用降级对话内容');
+    }
+
+    if (dialogsToRender.length > 0) {
+      // 缓存生成的对话
+      aiNodeCache.set(node.id, { dialogs: dialogsToRender });
+      
+      // 临时覆盖节点的dialogs用于渲染
+      node.dialogs = dialogsToRender;
+      
+      // 渲染第一句对话
+      const currentDialog = dialogsToRender[storyEngine.getCurrentDialogIndex()];
+      if (currentDialog) {
+        renderDialog(currentDialog);
+      }
+    } else if (node.nextNodeId) {
+      // 没有对话内容则跳到下一节点
+      storyEngine.advanceToNextNode();
+      renderNode();
+    }
+  };
+
+  // 处理AI选项节点
+  const handleAIChoiceNode = async (node: StoryNode) => {
+    const nodeCharacterId = (node.characterId || characterId) as CharacterId;
+    const currentAffection = gameManager.getAffection(nodeCharacterId);
+    const settings = gameManager.getSettings();
+    
+    // 检查缓存
+    const cached = aiNodeCache.get(node.id);
+    if (cached?.choices && cached.choices.length > 0) {
+      // 确保node.choices已设置（缓存命中时也需要）
+      node.choices = cached.choices;
+      renderChoices(cached.choices);
+      nextIndicator.classList.add('hidden');
+      return;
+    }
+
+    const aiService = getAIService();
+    const storyContext = node.storyContext!;
+    
+    // 检查是否启用AI且已配置
+    const useAI = settings.enableAI && aiService.isConfigured();
+    console.log(`[GameScene] AI选项节点 - enableAI: ${settings.enableAI}, isConfigured: ${aiService.isConfigured()}, useAI: ${useAI}`);
+    
+    let choicesToRender: Choice[];
+    
+    if (useAI) {
+      // 显示加载动画
+      showAILoadingIndicator();
+      
+      // 从fallback选项中提取nextNodeId映射（按type: positive/neutral/negative）
+      const fallbackChoices = node.fallback?.choices || [];
+      const nextNodeMap: Record<string, string> = {};
+      fallbackChoices.forEach((fc, idx) => {
+        // 尝试根据索引推断type，或者使用默认映射
+        const types = ['positive', 'neutral', 'negative'];
+        nextNodeMap[types[idx] || `type_${idx}`] = fc.nextNodeId;
+      });
+      console.log('[GameScene] AI选项nextNodeMap:', nextNodeMap);
+
+      // 尝试AI生成
+      const result = await aiService.generateStoryChoicesWithMap(
+        {
+          characterId: nodeCharacterId,
+          currentAffection,
+          storyContext,
+          recentHistory: gameManager.getDialogHistory().slice(-5),
+        },
+        nextNodeMap
+      );
+
+      hideAILoadingIndicator();
+      
+      if (result.success && result.choices.length > 0) {
+        choicesToRender = result.choices;
+        console.log('[GameScene] AI选项生成成功');
+      } else {
+        // AI生成失败，使用降级内容
+        choicesToRender = node.fallback?.choices || [];
+        console.log('[GameScene] AI生成失败，使用降级选项内容');
+      }
+    } else {
+      // 未启用AI或未配置，直接使用降级内容
+      choicesToRender = node.fallback?.choices || [];
+      console.log('[GameScene] AI未启用，使用降级选项内容');
+    }
+
+    if (choicesToRender.length > 0) {
+      // 缓存生成的选项
+      aiNodeCache.set(node.id, { choices: choicesToRender });
+      
+      // 临时覆盖节点的choices用于渲染
+      node.choices = choicesToRender;
+      
+      renderChoices(choicesToRender);
+      nextIndicator.classList.add('hidden');
+    } else if (node.nextNodeId) {
+      // 没有选项内容则跳到下一节点
+      storyEngine.advanceToNextNode();
+      renderNode();
+    }
+  };
+
   // Render current node
   const renderNode = () => {
     const node = storyEngine.getCurrentNode();
@@ -543,6 +729,27 @@ export function renderGameScene(container: HTMLElement, gameManager: GameManager
 
     choicesContainer.classList.add('hidden');
     freeChatPanel.classList.add('hidden');
+
+    // 更新背景 (放在前面，让AI生成时也能看到正确的场景)
+    if (node.background) {
+      const bg = BACKGROUNDS[node.background as keyof typeof BACKGROUNDS];
+      if (bg) {
+        const bgEl = container.querySelector('#game-background') as HTMLElement;
+        bgEl.style.backgroundImage = `url('${bg}')`;
+      }
+    }
+
+    // AI对话节点处理
+    if (node.type === 'ai_dialog' && node.storyContext) {
+      handleAIDialogNode(node);
+      return;
+    }
+    
+    // AI选项节点处理
+    if (node.type === 'ai_choice' && node.storyContext) {
+      handleAIChoiceNode(node);
+      return;
+    }
 
     if (node.type === 'dialog' && node.dialogs && node.dialogs.length > 0) {
       const currentDialog = node.dialogs[storyEngine.getCurrentDialogIndex()];
@@ -567,18 +774,16 @@ export function renderGameScene(container: HTMLElement, gameManager: GameManager
         return;
       }
     } else if (node.type === 'ending') {
-      // Handle ending - show ending screen then return to menu
-      gameManager.showScene('home');
-      return;
-    }
-
-    // Update background if specified
-    if (node.background) {
-      const bg = BACKGROUNDS[node.background as keyof typeof BACKGROUNDS];
-      if (bg) {
-        const bgEl = container.querySelector('#game-background') as HTMLElement;
-        bgEl.style.backgroundImage = `url('${bg}')`;
+      // 处理结局 - 显示结局对话后返回菜单
+      if (node.dialogs && node.dialogs.length > 0) {
+        const currentDialog = node.dialogs[storyEngine.getCurrentDialogIndex()];
+        if (currentDialog) {
+          renderDialog(currentDialog);
+        }
+      } else {
+        gameManager.showScene('home');
       }
+      return;
     }
   };
 

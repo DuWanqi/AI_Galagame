@@ -14,6 +14,7 @@ import type {
 import { AffectionSystem } from './AffectionSystem';
 import { SaveSystem } from './SaveSystem';
 import { StoryEngine } from './StoryEngine';
+import { getAIService } from '../services/AIService';
 import { renderHomePage } from '../scenes/HomePage';
 import { renderCharacterSelectPage } from '../scenes/CharacterSelectPage';
 import { renderGameScene } from '../scenes/GameScene';
@@ -81,6 +82,12 @@ export class GameManager {
     const savedSettings = this.saveSystem.loadSettings();
     if (savedSettings) {
       this.state.settings = { ...DEFAULT_SETTINGS, ...savedSettings };
+    }
+    
+    // 如果有保存的API Key，设置给AIService
+    if (this.state.settings.enableAI && this.state.settings.aiApiKey) {
+      getAIService().setApiKey(this.state.settings.aiApiKey);
+      console.log('[GameManager] AI服务已配置API Key');
     }
     
     // 初始化剧情引擎
@@ -242,6 +249,14 @@ export class GameManager {
   public updateSettings(settings: Partial<GameSettings>): void {
     this.state.settings = { ...this.state.settings, ...settings };
     this.saveSystem.saveSettings(this.state.settings);
+    
+    // 如果API Key被更新，同步到AIService
+    if (settings.aiApiKey !== undefined || settings.enableAI !== undefined) {
+      if (this.state.settings.enableAI && this.state.settings.aiApiKey) {
+        getAIService().setApiKey(this.state.settings.aiApiKey);
+        console.log('[GameManager] AI服务API Key已更新');
+      }
+    }
   }
 
   // 系统访问

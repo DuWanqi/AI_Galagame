@@ -4,6 +4,7 @@
  */
 
 import type { StoryChapter } from '../types';
+import { XIA_ZHI_CHAPTERS } from './xia_zhi_story';
 
 export const STORY_CHAPTERS: StoryChapter[] = [
   {
@@ -605,6 +606,20 @@ export const STORY_CHAPTERS: StoryChapter[] = [
             text: '【第一章 完】',
           },
         ],
+        nextNodeId: 'sw_ch1_freechat',
+      },
+      // 第一章末尾自由对话
+      {
+        id: 'sw_ch1_freechat',
+        type: 'free_chat',
+        characterId: 'su_wanqing',
+        background: 'library',
+        freeChatConfig: {
+          maxRounds: 5,
+          prompt: '（轻轻点头）......今天认识你，是件好事。你......还有什么想说的吗？',
+          exitText: '结束对话',
+          placeholderText: '和晚晴聊聊吧...',
+        },
         nextNodeId: 'sw_ch1_continue',
       },
       // 章节衔接选择
@@ -797,6 +812,40 @@ export const STORY_CHAPTERS: StoryChapter[] = [
             text: '【第一章 完】',
           },
         ],
+        nextNodeId: 'xz_ch1_chapter_select',
+      },
+      // 章节选择节点
+      {
+        id: 'xz_ch1_chapter_select',
+        type: 'choice',
+        characterId: 'xia_zhi',
+        choices: [
+          {
+            id: 'c_continue',
+            text: '继续下一章',
+            icon: 'arrow_forward',
+            effects: [],
+            nextNodeId: 'xz_ch2_start',
+          },
+          {
+            id: 'c_return',
+            text: '返回主页',
+            icon: 'home',
+            effects: [],
+            nextNodeId: 'xz_return_home',
+          },
+        ],
+      },
+      {
+        id: 'xz_return_home',
+        type: 'scene_change',
+        sceneId: 'home',
+        nextNodeId: undefined,
+      },
+      {
+        id: 'xz_ch2_start',
+        type: 'scene_change',
+        sceneId: 'xia_zhi_ch2',
         nextNodeId: undefined,
       },
     ],
@@ -2902,6 +2951,20 @@ export const STORY_CHAPTERS: StoryChapter[] = [
             text: '你握着书签，看着她离去的背影，心跳得厉害。',
           },
         ],
+        nextNodeId: 'sw_ch3_free_chat',
+      },
+      // 第三章自由对话
+      {
+        id: 'sw_ch3_free_chat',
+        type: 'free_chat',
+        characterId: 'su_wanqing',
+        background: 'schoolGate',
+        freeChatConfig: {
+          maxRounds: 5,
+          prompt: '夜色渐深，你手握着苏晚晴亲手做的书签。月光下，你回想着这些天发生的一切......',
+          exitText: '回家',
+          placeholderText: '在心里默默想着...',
+        },
         nextNodeId: 'sw_ch3_ending',
       },
       // 章节结束
@@ -3894,9 +3957,23 @@ export const STORY_CHAPTERS: StoryChapter[] = [
             text: '你望着她消失在楼梯口，心里涌起一股说不清的感觉......',
           },
         ],
+        nextNodeId: 'sw_ch4_free_chat_normal',
+      },
+      // 普通结局分支的自由对话
+      {
+        id: 'sw_ch4_free_chat_normal',
+        type: 'free_chat',
+        characterId: 'su_wanqing',
+        background: 'rooftop',
+        freeChatConfig: {
+          maxRounds: 3,
+          prompt: '夜风中，你独自站在天台上，回想着刚才发生的一切。苏晚晴的背影还在脑海中挥之不去......',
+          exitText: '离开天台',
+          placeholderText: '心里默默想着...',
+        },
         nextNodeId: 'sw_ch4_ending_normal',
       },
-      // 自由对话节点
+      // 告白成功的自由对话节点
       {
         id: 'sw_ch4_free_chat',
         type: 'free_chat',
@@ -4210,4 +4287,6 @@ export const STORY_CHAPTERS: StoryChapter[] = [
       },
     ],
   },
+  // 添加夏栀AI驱动剧情章节(第2-3章)
+  ...XIA_ZHI_CHAPTERS,
 ];

@@ -77,7 +77,7 @@ export interface ChoiceCondition {
 // 剧情节点
 export interface StoryNode {
   id: string;
-  type: 'dialog' | 'choice' | 'scene_change' | 'ending' | 'free_chat';
+  type: 'dialog' | 'choice' | 'scene_change' | 'ending' | 'free_chat' | 'ai_dialog' | 'ai_choice';
   characterId?: CharacterId;
   background?: string;
   bgm?: string;
@@ -88,6 +88,25 @@ export interface StoryNode {
   endingType?: 'normal' | 'perfect' | 'hidden';
   // 自由对话节点专用
   freeChatConfig?: FreeChatConfig;
+  // AI驱动节点专用
+  storyContext?: StoryContext;
+  fallback?: FallbackContent;
+}
+
+// AI剧情上下文 - 用于指导AI生成内容
+export interface StoryContext {
+  scene: string;           // 场景描述
+  event: string;           // 当前事件
+  mood: string;            // 氛围
+  keyPoints: string[];     // 必须包含的关键点
+  dialogCount?: number;    // 期望生成的对话数量
+  choiceCount?: number;    // 期望生成的选项数量
+}
+
+// 降级用的预设内容
+export interface FallbackContent {
+  dialogs?: DialogLine[];
+  choices?: Choice[];
 }
 
 // 自由对话配置
@@ -185,6 +204,26 @@ export interface AIDialogResponse {
   text: string;
   emotion?: string;
   affectionChange?: number;
+}
+
+// AI剧情生成请求
+export interface AIStoryRequest {
+  characterId: CharacterId;
+  currentAffection: number;
+  storyContext: StoryContext;
+  recentHistory: DialogHistoryEntry[];
+}
+
+// AI剧情对话响应
+export interface AIStoryDialogResponse {
+  dialogs: DialogLine[];
+  success: boolean;
+}
+
+// AI剧情选项响应  
+export interface AIStoryChoiceResponse {
+  choices: Choice[];
+  success: boolean;
 }
 
 // 事件类型
